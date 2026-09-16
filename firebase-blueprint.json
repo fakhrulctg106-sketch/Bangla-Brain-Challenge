@@ -1,0 +1,263 @@
+{
+  "entities": {
+    "users": {
+      "title": "users",
+      "description": "User profiles and player records",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "studentId": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "admin", "moderator", "student"] },
+        "isBlocked": { "type": "boolean" },
+        "totalScore": { "type": "number" },
+        "quizzesPlayed": { "type": "number" },
+        "correctAnswers": { "type": "number" },
+        "wrongAnswers": { "type": "number" },
+        "currentStreak": { "type": "number" },
+        "bestStreak": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "roles": {
+      "title": "roles",
+      "description": "Explicit role authorization mapping by user UID",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["owner", "admin", "moderator"] },
+        "assignedBy": { "type": "string" },
+        "assignedAt": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["role"]
+    },
+    "categories": {
+      "title": "categories",
+      "description": "Quiz categories",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "order": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "isIslamic": { "type": "boolean" },
+        "questionCount": { "type": "number" }
+      },
+      "required": ["id", "nameBn", "nameEn"]
+    },
+    "questions": {
+      "title": "questions",
+      "description": "Questions bank scalable to thousands of items",
+      "type": "object",
+      "properties": {
+        "categoryId": { "type": "string" },
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctIndex": { "type": "number" },
+        "explanation": { "type": "string" },
+        "sourceReference": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "isActive": { "type": "boolean" },
+        "isPublished": { "type": "boolean" },
+        "randomKey": { "type": "number" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["categoryId", "question", "options", "correctIndex", "isActive"]
+    },
+    "quizAttempts": {
+      "title": "quizAttempts",
+      "description": "Completed or active quiz attempts for anti-cheat verification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "attemptToken": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "correctAnswers": { "type": "number" },
+        "timeSpentSeconds": { "type": "number" },
+        "answers": { "type": "array" },
+        "completedAt": { "type": "string" }
+      },
+      "required": ["userId", "attemptToken", "categoryId", "score"]
+    },
+    "scores": {
+      "title": "scores",
+      "description": "Daily, weekly, monthly and all-time leaderboard score entries",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "score": { "type": "number" },
+        "period": { "type": "string", "enum": ["daily", "weekly", "monthly", "all_time"] },
+        "periodKey": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "score", "period", "periodKey"]
+    },
+    "achievements": {
+      "title": "achievements",
+      "description": "Unlocked player badges and milestone awards",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "badgeId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "unlockedAt": { "type": "string" }
+      },
+      "required": ["userId", "badgeId"]
+    },
+    "chats": {
+      "title": "chats",
+      "description": "Chat channels and threads",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["direct", "developer", "group"] },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "lastSenderId": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["type", "participants"]
+    },
+    "messages": {
+      "title": "messages",
+      "description": "Direct chat messages between students or with Developer Fakhrul Islam",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["chatId", "senderId", "text", "createdAt"]
+    },
+    "calls": {
+      "title": "calls",
+      "description": "WebRTC audio signaling sessions",
+      "type": "object",
+      "properties": {
+        "callerId": { "type": "string" },
+        "callerName": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string", "enum": ["ringing", "active", "ended", "declined"] },
+        "createdAt": { "type": "string" },
+        "offer": { "type": "object" },
+        "answer": { "type": "object" }
+      },
+      "required": ["callerId", "receiverId", "status"]
+    },
+    "reports": {
+      "title": "reports",
+      "description": "User and message reports for moderation",
+      "type": "object",
+      "properties": {
+        "reportedBy": { "type": "string" },
+        "reportedUserId": { "type": "string" },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
+        "createdAt": { "type": "string" },
+        "resolvedBy": { "type": "string" }
+      },
+      "required": ["reportedBy", "reportedUserId", "reason", "status"]
+    },
+    "blockedUsers": {
+      "title": "blockedUsers",
+      "description": "User block lists",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "blockedUserId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "blockedUserId"]
+    },
+    "notifications": {
+      "title": "notifications",
+      "description": "In-app notifications",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "type": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "body", "isRead"]
+    },
+    "announcements": {
+      "title": "announcements",
+      "description": "Global or group announcements created by admins",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "priority": { "type": "string", "enum": ["normal", "important", "urgent"] },
+        "publishedBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "content", "createdAt"]
+    },
+    "appConfiguration": {
+      "title": "appConfiguration",
+      "description": "Feature flags, ads settings and global configuration",
+      "type": "object",
+      "properties": {
+        "adsEnabled": { "type": "boolean" },
+        "admobBannerId": { "type": "string" },
+        "admobInterstitialId": { "type": "string" },
+        "admobRewardedId": { "type": "string" },
+        "webAdsEnabled": { "type": "boolean" },
+        "audioCallsEnabled": { "type": "boolean" },
+        "chatEnabled": { "type": "boolean" },
+        "maintenanceMode": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "auditLogs": {
+      "title": "auditLogs",
+      "description": "Administrative actions audit trail",
+      "type": "object",
+      "properties": {
+        "adminId": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetEntity": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["adminId", "action", "timestamp"]
+    },
+    "adminInvitations": {
+      "title": "adminInvitations",
+      "description": "Pending admin role invites generated by the Owner",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "moderator"] },
+        "invitedBy": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "revoked"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role", "status"]
+    }
+  }
+}

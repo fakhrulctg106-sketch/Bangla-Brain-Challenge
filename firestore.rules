@@ -1,0 +1,201 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'fakhrulctg106@gmail.com' ||
+        request.auth.token.email.matches('(?i)^fakhrulctg106@gmail\\.com$') ||
+        (exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == 'owner')
+      );
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        isOwner() ||
+        (exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+    
+    function isModerator() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == 'moderator')
+      );
+    }
+    
+    function isUser(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Roles collection - ONLY the Owner can write or delete role mappings
+    match /roles/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isOwner() || isAdmin());
+      allow write: if isOwner();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      
+      // On registration / creation:
+      // Regular users are strictly restricted to role: 'user' or 'student' and isBlocked: false.
+      // Only the Owner can create with role: 'owner'.
+      allow create: if isAuthenticated() && request.auth.uid == userId && (
+        (isOwner() && request.resource.data.role == 'owner') ||
+        (!isOwner() && (!('role' in request.resource.data) || request.resource.data.role in ['student', 'user']))
+      ) && (!('isBlocked' in request.resource.data) || request.resource.data.isBlocked == false);
+      
+      // On update:
+      // - Owner can update any user profile (including role changes)
+      // - Admins can update students or moderators (e.g. toggle isBlocked), but CANNOT modify or block the Owner account or alter roles
+      // - Regular users can update their non-privileged fields, but CANNOT alter role or isBlocked
+      allow update: if isAuthenticated() && (
+        isOwner() ||
+        (isAdmin() && resource.data.role != 'owner' && request.resource.data.role != 'owner' && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isBlocked']))
+      );
+      
+      // Only the Owner can delete a user record
+      allow delete: if isOwner();
+    }
+
+    // Categories collection
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Questions collection
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Quiz attempts & score tracking
+    match /quizAttempts/{attemptId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Leaderboard scores
+    match /scores/{scoreId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Achievements
+    match /achievements/{achievementId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Chats & Messages
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() && (
+        resource.data.participants.hasAny([request.auth.uid]) ||
+        isModerator()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.participants.hasAny([request.auth.uid]) ||
+        isModerator()
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.participants.hasAny([request.auth.uid]) ||
+        isModerator()
+      );
+      allow delete: if isModerator();
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isModerator();
+    }
+
+    // WebRTC Audio Calls
+    match /calls/{callId} {
+      allow read: if isAuthenticated() && (
+        resource.data.callerId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid ||
+        isModerator()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.callerId == request.auth.uid ||
+        request.resource.data.receiverId == request.auth.uid
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.callerId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid ||
+        isModerator()
+      );
+      allow delete: if isModerator();
+    }
+
+    // Moderation Reports
+    match /reports/{reportId} {
+      allow create: if isAuthenticated() && request.resource.data.reportedBy == request.auth.uid;
+      allow read, update: if isModerator();
+      allow delete: if isAdmin();
+    }
+
+    // Blocked users
+    match /blockedUsers/{blockId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        isModerator()
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // App Configuration (Feature flags, Ads, Maintenance) - Only Owner can write
+    match /appConfiguration/{configId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Audit Logs - Immutable
+    match /auditLogs/{logId} {
+      allow read: if isModerator();
+      allow create: if isModerator();
+      allow update, delete: if false;
+    }
+
+    // Admin Invitations
+    match /adminInvitations/{inviteId} {
+      allow read: if isAuthenticated() && (isOwner() || isAdmin());
+      allow write: if isOwner();
+    }
+
+    // Connection test collection
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

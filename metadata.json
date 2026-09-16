@@ -1,0 +1,6 @@
+{
+  "name": "Bangla Brain Challenge",
+  "description": "Production-ready cross-platform educational game platform for Bengali learners featuring quizzes, math challenge, puzzles, multiplayer communication, and an admin panel.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
