@@ -19,11 +19,8 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,30 +29,34 @@ jobs:
           cache: 'npm'
 
       - name: Install Node Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Build Web Application
         run: npm run build
 
-      - name: Initialize & Sync Capacitor Android
+      - name: Initialize Capacitor Android Platform
         run: |
-          npx cap add android || npx cap sync android
+          npx cap telemetry off || true
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
           npx cap sync android
 
-      - name: Make Gradle executable
+      - name: Make Gradle Wrapper Executable
         run: |
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
-          fi
+          chmod +x android/gradlew
 
-      - name: Build Android APK with Gradle
+      - name: Build Android APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd android
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Bangla-Brain-Challenge-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: Bangla-Brain-Challenge-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
